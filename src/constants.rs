@@ -1,0 +1,1 @@
+pub const BRAVE_SEARCH_BASE: &'static str = "  https://api.search.brave.com/res/v1/web/search";
