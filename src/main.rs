@@ -7,6 +7,8 @@ mod search;
 mod models;
 mod constants;
 mod cache;
+mod utils;
+mod options;
 
 use axum::Router;
 use std::net::SocketAddr;

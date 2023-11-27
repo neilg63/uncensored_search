@@ -31,6 +31,20 @@ pub fn extract_object_vec(value: &Value, key: &str) -> Vec<Value> {
   }
 }
 
+pub fn extract_inner_results(json: &Value, key: &str) -> Vec<SearchResult> {
+  let mut results: Vec<SearchResult> = Vec::new();
+  if let Some(data_map) = json[key].as_object() {
+    if let Some(inner) = data_map.get("results") {
+      if let Some(rows) = inner.as_array() {
+        for row in rows {
+          results.push(SearchResult::new(&row));
+        }
+      }
+    }
+  }
+  results
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SearchResult {
   pub uri: String,
@@ -41,8 +55,7 @@ pub struct SearchResult {
 
 impl  SearchResult {
   pub fn new(json: &Value) -> Self {
-    let is_obj = json.is_object();
-    let uri = extract_string_or_empty(&json, "uri");
+    let uri = extract_string_or_empty(&json, "url");
     let title = extract_string_or_empty(&json, "title");
     let summary = extract_string_or_empty(&json, "description");
     let date = extract_string_or_empty(&json, "page_age");
@@ -70,19 +83,12 @@ impl  ResultSet {
   pub fn new(json: &Value) -> Self {
     let is_obj = json.is_object();
     let keys = if is_obj { json.as_object().unwrap().keys().into_iter().map(|k| k.as_str()).collect::<Vec<&str>>() } else { vec![] };
-    let valid = keys.contains(&"mixed");
-    let mut results: Vec<SearchResult> = Vec::new();
-    
-    if let Some(news) = json["news"].as_object() {
-      let rows = extract_object_vec(&json, "results");
-      for row in rows {
-        results.push(SearchResult::new(&row));
-      }
-    }
-    if let Some(news) = json["web"].as_object() {
-      let rows = extract_object_vec(&json, "results");
-      for row in rows {
-        results.push(SearchResult::new(&row));
+    let valid = keys.contains(&"mixed") && (keys.contains(&"news") || keys.contains(&"web"));
+    let mut results: Vec<SearchResult> = extract_inner_results(json, "news");
+    let web_results: Vec<SearchResult> = extract_inner_results(json, "web");
+    if web_results.len() > 0 {
+      for result in web_results {
+        results.push(result);
       }
     }
     let count = results.len();

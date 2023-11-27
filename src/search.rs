@@ -1,16 +1,15 @@
 use chrono::Duration;
 use reqwest::Error;
 use serde_json;
-use slug::slugify;
 
 
-use crate::{models::ResultSet, constants::BRAVE_SEARCH_BASE, cache::{redis_get_results, redis_set_results}};
+use crate::{models::ResultSet, constants::BRAVE_SEARCH_BASE, cache::{redis_get_results, redis_set_results}, options::BraveSearchOptions, utils::build_query_string};
 
-pub async fn fetch_search_results(q: &str) -> Result<ResultSet, Error> {
-  let uri = format!("{}?q={}", BRAVE_SEARCH_BASE, q);
+pub async fn fetch_search_results(options: &BraveSearchOptions) -> Result<ResultSet, Error> {
+  let uri = [BRAVE_SEARCH_BASE, &build_query_string(&options.to_tuples())].concat();
   let api_key = dotenv::var("BRAVE_SEARCH").unwrap_or("".to_string());
   let client = reqwest::Client::new();
-  println!("{}", uri);
+  
   let result = client.get(&uri).header("X-Subscription-Token", &api_key).send().await;
   match result {
       Ok(resp) => {
@@ -24,12 +23,12 @@ pub async fn fetch_search_results(q: &str) -> Result<ResultSet, Error> {
   }
 }
 
-pub async fn get_search_results(q: &str) -> Result<ResultSet, Error> {
-  let key = slugify(&["brave", q].join("_"));
-  if let Some(result) = redis_get_results(&key, Duration::minutes(1)) {
+pub async fn get_search_results(options: &BraveSearchOptions) -> Result<ResultSet, Error> {
+  let key = options.to_cache_key();
+  if let Some(result) = redis_get_results(&key, Duration::minutes(60)) {
     Ok(result)
   } else {
-    let result_set = fetch_search_results(q).await;
+    let result_set = fetch_search_results(options).await;
     if let Ok(result) = result_set {
       if result.valid {
         redis_set_results(&key, &result.clone());
