@@ -1,6 +1,5 @@
 use redis::{Commands, RedisResult, Connection, Client};
 use chrono::{Local, Duration};
-use serde::{Serialize, Deserialize};
 use crate::models::*;
 
 pub fn  redis_client() -> RedisResult<Connection> {
@@ -18,31 +17,31 @@ pub fn seconds_ago(ts: i64) -> i64 {
   now_ts - ts
 }
 
-pub fn get_max_seconds() -> u32 {
+pub fn get_max_seconds(def_secs: i64) -> i64 {
   let max_seconds_limit: u32 = 7 * 24 * 60 * 60;
   let sec_str = dotenv::var("MAX_SEARCH_SECS").unwrap_or("3600".to_owned());
   if let Ok(max_seconds) = sec_str.parse::<u32>() {
     if max_seconds <= max_seconds_limit {
-      max_seconds
+      max_seconds as i64
     } else {
-      max_seconds_limit
+      max_seconds_limit as i64
     }
   } else {
-    3600
+    def_secs
   }
 }
 
-pub fn get_max_suggest_seconds() -> u32 {
+pub fn get_max_suggest_seconds(def_secs: i64) -> i64 {
   let max_seconds_limit: u32 = 13 * 7 * 24 * 60 * 60;
   let sec_str = dotenv::var("MAX_SUGGEST_SECS").unwrap_or("86400".to_owned());
   if let Ok(max_seconds) = sec_str.parse::<u32>() {
     if max_seconds <= max_seconds_limit {
-      max_seconds
+      max_seconds as i64
     } else {
-      max_seconds_limit
+      max_seconds_limit as i64
     }
   } else {
-    864600
+    def_secs
   }
 }
 
@@ -74,7 +73,7 @@ pub fn redis_get_results(key: &str, age: Duration) -> Option<ResultSet> {
   if let Some(result) = redis_get_opt_string(key) {
       if result.len() > 0 {
           let mut data: ResultSet = serde_json::from_str(&result).unwrap_or(ResultSet::empty());
-          let max_secs = get_max_seconds() as i64;
+          let max_secs = get_max_seconds(age.num_seconds());
           if data.retrieved_age() < max_secs {
             data.set_cached();
             Some(data)
@@ -108,7 +107,7 @@ pub fn redis_get_suggest_results(key: &str, age: Duration) -> Option<AutoSuggest
   if let Some(result) = redis_get_opt_string(key) {
       if result.len() > 0 {
           let mut data: AutoSuggestResultSet = serde_json::from_str(&result).unwrap_or(AutoSuggestResultSet::empty());
-          let max_secs = get_max_suggest_seconds() as i64;
+          let max_secs = get_max_suggest_seconds(age.num_seconds());
           if data.retrieved_age() < max_secs {
             data.set_cached();
             Some(data)
