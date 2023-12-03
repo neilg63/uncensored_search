@@ -1,5 +1,7 @@
 pub const BRAVE_SEARCH_BASE: &'static str = "  https://api.search.brave.com/res/v1/web/search";
 
+pub const BRAVE_SUGGEST_BASE: &'static str = "  https://api.search.brave.com/res/v1/suggest/search";
+
 pub const COUNTRY_CODES: [&'static str; 36] = [
   "AR", "AU", "AT", "BE", "BR",
   "CA", "CL", "DK", "FI", "FR",

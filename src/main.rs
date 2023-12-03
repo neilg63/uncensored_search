@@ -52,6 +52,7 @@ async fn main() {
     let app = Router::new()
         // `GET /` goes to `root`
         .route("/search", get(search_data_response))
+        .route("/suggest", get(suggest_data_response))
         .layer(CorsLayer::permissive())
         .layer(TimeoutLayer::new(Duration::from_secs(max_timeout_secs)))
         // don't allow request bodies larger than 1024 bytes, returning 413 status code

@@ -3,7 +3,7 @@ use reqwest::Error;
 use serde_json;
 
 
-use crate::{models::ResultSet, constants::BRAVE_SEARCH_BASE, cache::{redis_get_results, redis_set_results}, options::BraveSearchOptions, utils::build_query_string};
+use crate::{models::{ResultSet, AutoSuggestResultSet}, constants::{BRAVE_SEARCH_BASE, BRAVE_SUGGEST_BASE}, cache::{redis_get_results, redis_set_results, redis_get_suggest_results, redis_set_suggest_results}, options::BraveSearchOptions, utils::build_query_string};
 
 pub async fn fetch_search_results(options: &BraveSearchOptions) -> Result<ResultSet, Error> {
   let uri = [BRAVE_SEARCH_BASE, &build_query_string(&options.to_tuples())].concat();
@@ -15,7 +15,7 @@ pub async fn fetch_search_results(options: &BraveSearchOptions) -> Result<Result
       Ok(resp) => {
         let result  = resp.json::<serde_json::Value>().await;
         match result {
-          Ok(json) => Ok(ResultSet::new(&json)),
+          Ok(json) => Ok(ResultSet::new(&json, options)),
           Err(err) => Err(err)
         }
       },
@@ -32,6 +32,41 @@ pub async fn get_search_results(options: &BraveSearchOptions) -> Result<ResultSe
     if let Ok(result) = result_set {
       if result.valid {
         redis_set_results(&key, &result.clone());
+      }
+      Ok(result)
+    } else {
+      result_set
+    }
+  }
+}
+
+pub async fn fetch_suggest_results(options: &BraveSearchOptions) -> Result<AutoSuggestResultSet, Error> {
+  let uri = [BRAVE_SUGGEST_BASE, &build_query_string(&options.to_suggest_tuples())].concat();
+  let api_key = dotenv::var("BRAVE_SUGGEST").unwrap_or("".to_string());
+  let client = reqwest::Client::new();
+  
+  let result = client.get(&uri).header("X-Subscription-Token", &api_key).send().await;
+  match result {
+      Ok(resp) => {
+        let result  = resp.json::<serde_json::Value>().await;
+        match result {
+          Ok(json) => Ok(AutoSuggestResultSet::new(&json, options)),
+          Err(err) => Err(err)
+        }
+      },
+      Err(error) => Err(error)
+  }
+}
+
+pub async fn get_suggest_results(options: &BraveSearchOptions) -> Result<AutoSuggestResultSet, Error> {
+  let key = options.to_suggest_cache_key();
+  if let Some(result) = redis_get_suggest_results(&key, Duration::minutes(60)) {
+    Ok(result)
+  } else {
+    let result_set = fetch_suggest_results(options).await;
+    if let Ok(result) = result_set {
+      if result.valid {
+        redis_set_suggest_results(&key, &result.clone());
       }
       Ok(result)
     } else {

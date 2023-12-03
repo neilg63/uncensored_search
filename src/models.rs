@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 use serde_json::Value;
-
-use crate::cache::get_timestamp;
+use serde_with::skip_serializing_none;
+use crate::{cache::get_timestamp, options::BraveSearchOptions};
 
 pub fn extract_string(value: &Value, key: &str) -> Option<String> {
   if let Some(inner) = value.get(key) {
@@ -45,6 +45,22 @@ pub fn extract_inner_results(json: &Value, key: &str) -> Vec<SearchResult> {
   results
 }
 
+pub fn extract_suggest_results(json: &Value) -> Vec<String> {
+  let mut results: Vec<String> = Vec::new();
+  if let Some(rows) = json["results"].as_array() {
+    for row in rows {
+      if let Some(item) = row.as_object() {
+        if let Some(query_field) = item.get("query") {
+          if let Some(text) = query_field.as_str() {
+            results.push(text.to_owned());
+          }
+        }
+      }
+    }
+  }
+  results
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SearchResult {
   pub uri: String,
@@ -68,19 +84,23 @@ impl  SearchResult {
   }
 }
 
+#[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ResultSet {
   pub valid: bool,
   pub count: usize,
   pub results: Vec<SearchResult>,
   pub ts: i64,
+  pub lang: Option<String>,
+  pub cc: Option<String>,
+  pub page: u16,
   pub cached: bool
 }
 
 impl  ResultSet {
     
     
-  pub fn new(json: &Value) -> Self {
+  pub fn new(json: &Value, options: &BraveSearchOptions) -> Self {
     let is_obj = json.is_object();
     let keys = if is_obj { json.as_object().unwrap().keys().into_iter().map(|k| k.as_str()).collect::<Vec<&str>>() } else { vec![] };
     let valid = keys.contains(&"mixed") && (keys.contains(&"news") || keys.contains(&"web"));
@@ -93,11 +113,17 @@ impl  ResultSet {
     }
     let count = results.len();
     let ts = get_timestamp();
+    let page = options.page();
+    let cc = options.country_code();
+    let lang = options.lang();
     ResultSet {
       valid,
       count,
       results,
       ts,
+      page,
+      cc,
+      lang,
       cached: false
     }
   }
@@ -108,7 +134,69 @@ impl  ResultSet {
       count: 0,
       results: Vec::new(),
       ts: 0,
+      cached: false,
+      lang: None,
+      cc: None,
+      page: 0
+    }
+  }
+
+  pub fn retrieved_age(&self) -> i64 {
+    get_timestamp() - self.ts
+  }
+
+  pub fn set_cached(&mut self) -> Self {
+    self.cached = true;
+    self.to_owned()
+  }
+
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AutoSuggestResultSet {
+  pub valid: bool,
+  pub count: usize,
+  pub results: Vec<String>,
+  pub ts: i64,
+  pub lang: Option<String>,
+  pub cc: Option<String>,
+  pub cached: bool
+}
+
+impl  AutoSuggestResultSet {
+    
+    
+  pub fn new(json: &Value, options: &BraveSearchOptions) -> Self {
+    let is_obj = json.is_object();
+    let keys = if is_obj { json.as_object().unwrap().keys().into_iter().map(|k| k.as_str()).collect::<Vec<&str>>() } else { vec![] };
+    let valid = keys.contains(&"results");
+    let results: Vec<String> = extract_suggest_results(json);
+
+    let count = results.len();
+    let ts = get_timestamp();
+    let cc = options.country_code();
+    let lang = options.lang();
+    AutoSuggestResultSet {
+      valid,
+      count,
+      results,
+      ts,
+      cc,
+      lang,
       cached: false
+    }
+  }
+    
+  pub fn empty() -> Self {
+    AutoSuggestResultSet {
+      valid: false,
+      count: 0,
+      results: Vec::new(),
+      ts: 0,
+      cached: false,
+      lang: None,
+      cc: None,
     }
   }
 

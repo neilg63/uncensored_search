@@ -57,6 +57,15 @@ impl BraveSearchOptions {
       ].join("_"))
   }
 
+  pub fn to_suggest_cache_key(&self) -> String {
+    slugify(&[
+        "br_sugg",
+        &self.q,
+        self.cc.clone().unwrap_or("all".to_string()).as_str(),
+        self.language.clone().unwrap_or("_".to_string()).as_str()
+      ].join("_"))
+  }
+
   pub fn cc_val(&self) -> String {
     if let Some(cc_val) = self.cc.clone() {
       cc_val
@@ -71,6 +80,18 @@ impl BraveSearchOptions {
     } else {
       "".to_owned()
     }
+  }
+
+  pub fn lang(&self) -> Option<String> {
+    self.language.clone()
+  }
+
+  pub fn country_code(&self) -> Option<String> {
+    self.cc.clone()
+  }
+
+  pub fn page(&self) -> u16 {
+    self.offset.unwrap_or(0) + 1
   }
 
   pub fn to_tuples(&self) -> Vec<(&str, String)> {
@@ -90,6 +111,17 @@ impl BraveSearchOptions {
     tuples
   }
 
+  pub fn to_suggest_tuples(&self) -> Vec<(&str, String)> {
+    let mut tuples: Vec<(&str, String)> = vec![("q", self.q.clone()), self.safesearch.to_option(), ("count", 20.to_string())];
+    if self.cc.is_some() {
+      tuples.push(("country", self.cc_val()));
+      
+    }
+    if self.language.is_some() {
+      tuples.push(("lang", self.lang_code()));
+    }
+    tuples
+  }
 
 }
 
