@@ -19,7 +19,7 @@ pub fn seconds_ago(ts: i64) -> i64 {
 
 pub fn get_max_seconds(def_secs: i64) -> i64 {
   let max_seconds_limit: u32 = 7 * 24 * 60 * 60;
-  let sec_str = dotenv::var("MAX_SEARCH_SECS").unwrap_or("3600".to_owned());
+  let sec_str = dotenv::var("MAX_SEARCH_SECS").unwrap_or(def_secs.to_string());
   if let Ok(max_seconds) = sec_str.parse::<u32>() {
     if max_seconds <= max_seconds_limit {
       max_seconds as i64
@@ -33,7 +33,7 @@ pub fn get_max_seconds(def_secs: i64) -> i64 {
 
 pub fn get_max_suggest_seconds(def_secs: i64) -> i64 {
   let max_seconds_limit: u32 = 13 * 7 * 24 * 60 * 60;
-  let sec_str = dotenv::var("MAX_SUGGEST_SECS").unwrap_or("86400".to_owned());
+  let sec_str = dotenv::var("MAX_SUGGEST_SECS").unwrap_or(def_secs.to_string());
   if let Ok(max_seconds) = sec_str.parse::<u32>() {
     if max_seconds <= max_seconds_limit {
       max_seconds as i64

@@ -60,7 +60,7 @@ pub async fn fetch_suggest_results(options: &BraveSearchOptions) -> Result<AutoS
 
 pub async fn get_suggest_results(options: &BraveSearchOptions) -> Result<AutoSuggestResultSet, Error> {
   let key = options.to_suggest_cache_key();
-  if let Some(result) = redis_get_suggest_results(&key, Duration::minutes(60)) {
+  if let Some(result) = redis_get_suggest_results(&key, Duration::minutes(1440)) {
     Ok(result)
   } else {
     let result_set = fetch_suggest_results(options).await;
