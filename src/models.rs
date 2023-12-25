@@ -136,6 +136,7 @@ pub struct ResultSet {
   pub lang: Option<String>,
   pub cc: Option<String>,
   pub page: u16,
+  pub removed: usize,
   pub cached: bool
 }
 
@@ -167,6 +168,7 @@ impl  ResultSet {
       page,
       cc,
       lang,
+      removed: 0,
       cached: false
     }
   }
@@ -192,6 +194,7 @@ impl  ResultSet {
           page,
           cc,
           lang,
+          removed: 0,
           cached: false
         }
       } else {
@@ -212,6 +215,7 @@ impl  ResultSet {
       cached: false,
       lang: None,
       cc: None,
+      removed: 0,
       page: 0
     }
   }
@@ -242,9 +246,11 @@ impl  ResultSet {
   }
 
   pub fn exclude_by_patterns(&mut self) {
+    let full_count = self.count;
     let pattern_strings = get_exclusion_pattern_strings();
     self.results = self.results.clone().into_iter().filter(|row| !uri_is_excluded(&pattern_strings, &row.uri)).collect();
     self.count = self.results.len();
+    self.removed = full_count - self.count
   }
 
 }

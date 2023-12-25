@@ -13,6 +13,7 @@ pub struct QueryParams {
   pub lang: Option<String>,
   pub p: Option<i64>, // page=1 is the first
   pub cached: Option<i16>, 
+  pub mode: Option<String>, 
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -22,6 +23,7 @@ pub struct BraveSearchOptions {
   pub cc: Option<String>,
   pub language: Option<String>,
   pub offset: Option<u16>,
+  pub mode: SearchProviderMode, 
 }
 
 impl BraveSearchOptions {
@@ -38,20 +40,25 @@ impl BraveSearchOptions {
       Some(cc_key) => match_country_code(&cc_key),
       _ => None
     };
+    let mode_key = params.mode.clone().unwrap_or("core".to_string());
+    let mode = SearchProviderMode::from_key(&mode_key);
     BraveSearchOptions {
       q,
       safesearch,
       cc,
       language,
-      offset
+      offset,
+      mode
     }
   }
 
-  pub fn to_cache_key(&self) -> String {
+  pub fn to_cache_key(&self, mode: SearchProviderMode) -> String {
+    let safe_search_key = self.safesearch.to_short();
+    let second_param = mode.to_param_key(&safe_search_key);
     slugify(&[
         "cs",
         &self.q,
-        self.safesearch.to_short().as_str(),
+        &second_param,
         self.cc.clone().unwrap_or("all".to_string()).as_str(),
         self.language.clone().unwrap_or("_".to_string()).as_str(),
         self.offset.unwrap_or(0).to_string().as_str()
@@ -200,4 +207,62 @@ pub enum SearchProvider {
   Brave,
   #[serde(rename = "mojeek")]
   Mojeek,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+pub enum SearchProviderMode {
+  #[serde(rename = "all")]
+  All,
+  #[serde(rename = "fulltext")]
+  FullText, // TextSurf FullText service only
+  #[serde(rename = "core")]
+  Core, // Core remote search providers
+  #[serde(rename = "brave")]
+  Brave,
+  #[serde(rename = "mojeek")]
+  Mojeek,
+}
+
+impl SearchProviderMode {
+  pub fn from_key(key: &str) -> Self {
+    let lc_key = key.to_string();
+    match lc_key.as_str() {
+      "all" => SearchProviderMode::All,
+      "text" | "fulltext" => SearchProviderMode::FullText,
+      "brave" => SearchProviderMode::Brave,
+      "mojeek" => SearchProviderMode::Mojeek,
+      _ => SearchProviderMode::Core
+    }
+  }
+
+  pub fn search_mojeek(&self) -> bool {
+    match self {
+      SearchProviderMode::Mojeek | SearchProviderMode::Core | SearchProviderMode::All => true,
+      _ => false
+    }
+  }
+
+  pub fn param_key(&self) -> Option<&'static str> {
+    let key = match self {
+      SearchProviderMode::All => "all",
+      SearchProviderMode::FullText => "fulltext",
+      SearchProviderMode::Brave => "brave",
+      SearchProviderMode::Mojeek => "mojeek",
+      _ => ""
+    };
+    if key.len() > 0 {
+      Some(key)
+    } else {
+      None
+    }
+  }
+
+  pub fn to_param_key(&self, suffix: &str) -> String {
+    let mut parts = vec![suffix];
+    if let Some(mode) = self.param_key() {
+      parts.push(mode);
+    }
+    parts.concat()
+  }
+
 }

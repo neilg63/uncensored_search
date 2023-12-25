@@ -41,20 +41,22 @@ pub async fn fetch_search_results_mojeek(options: &BraveSearchOptions) -> Result
 }
 
 pub async fn get_search_results(options: &BraveSearchOptions) -> Result<ResultSet, Error> {
-  let key = options.to_cache_key();
+  let key = options.to_cache_key(options.mode);
   if let Some(result) = redis_get_results(&key, Duration::minutes(60)) {
     Ok(result)
   } else {
     let result_set = fetch_search_results(options).await;
-    let result_set_mojeek = fetch_search_results_mojeek(options).await;
     if let Ok(mut result) = result_set {
-      if let Ok(result2) = result_set_mojeek {
-        result.merge_results(result2);
+      if options.mode.search_mojeek() {
+        let result_set_mojeek = fetch_search_results_mojeek(options).await;
+        if let Ok(result2) = result_set_mojeek {
+          result.merge_results(result2);
+        }
       }
+      result.exclude_by_patterns();
       if result.valid {
         redis_set_results(&key, &result.clone());
       }
-      result.exclude_by_patterns();
       Ok(result)
     } else {
       result_set
