@@ -1,0 +1,22 @@
+[
+  {
+    "pattern": "^https?://(\\w+\\.)?youtube\\.\\w",
+    "name": "Youtube"
+  },
+  {
+    "pattern": "^https?://(\\w+\\.)?facebook\\.\\w",
+    "name": "Facebook"
+  },
+  {
+    "pattern": "^https?://(\\w+\\.)?twitter\\.\\w",
+    "name": "Twitter/X"
+  },
+  {
+    "pattern": "^https?://(\\w+\\.)?x\\.com",
+    "name": "X (Twitter)"
+  },
+  {
+    "pattern": "^https?://(\\w+\\.)?pornhub\\.\\w",
+    "name": "Pornhub"
+  }
+]
