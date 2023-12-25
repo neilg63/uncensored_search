@@ -12,6 +12,7 @@ pub struct QueryParams {
   pub cc: Option<String>, // country-specific searches are geolocal
   pub lang: Option<String>,
   pub p: Option<i64>, // page=1 is the first
+  pub cached: Option<i16>, 
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

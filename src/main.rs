@@ -9,6 +9,8 @@ mod constants;
 mod cache;
 mod utils;
 mod options;
+mod exclusions;
+mod string_patterns;
 
 use axum::Router;
 use std::net::SocketAddr;
@@ -53,6 +55,8 @@ async fn main() {
         // `GET /` goes to `root`
         .route("/search", get(search_data_response))
         .route("/suggest", get(suggest_data_response))
+
+        .route("/exclusions", get(list_exclusion_patterns))
         .layer(CorsLayer::permissive())
         .layer(TimeoutLayer::new(Duration::from_secs(max_timeout_secs)))
         // don't allow request bodies larger than 1024 bytes, returning 413 status code

@@ -54,6 +54,7 @@ pub async fn get_search_results(options: &BraveSearchOptions) -> Result<ResultSe
       if result.valid {
         redis_set_results(&key, &result.clone());
       }
+      result.exclude_by_patterns();
       Ok(result)
     } else {
       result_set

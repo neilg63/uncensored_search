@@ -1,6 +1,6 @@
 use redis::{Commands, RedisResult, Connection, Client};
 use chrono::{Local, Duration};
-use crate::models::*;
+use crate::{models::*, exclusions::UrlPattern};
 
 pub fn  redis_client() -> RedisResult<Connection> {
   let client = Client::open("redis://127.0.0.1/")?;
@@ -119,5 +119,32 @@ pub fn redis_get_suggest_results(key: &str, age: Duration) -> Option<AutoSuggest
       }
   } else {
       None
+  }
+}
+
+pub fn  redis_set_exclusions(result: &[UrlPattern]) -> Option<Vec<UrlPattern>> {
+  if let Ok(mut connection) =  redis_client() {
+      match serde_json::to_string(result) {
+        Ok(value) => match connection.set::<String,String,String>("url_pattern_exclusion_list".to_string(), value) {
+          Ok(_result) => Some(result.to_owned()),
+          Err(_error) => None,
+        },
+        _ => None
+      }
+  } else {
+    None
+  }
+}
+
+pub fn redis_get_exclusions() -> Vec<UrlPattern> {
+  if let Some(result) = redis_get_opt_string("url_pattern_exclusion_list") {
+      if result.len() > 0 {
+          let items: Vec<UrlPattern> = serde_json::from_str(&result).unwrap_or(vec![]);
+          items
+      } else {
+        vec![]
+      }
+  } else {
+    vec![]
   }
 }

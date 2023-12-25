@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 use serde_json::Value;
 use serde_with::skip_serializing_none;
-use crate::{cache::get_timestamp, options::{BraveSearchOptions, SearchProvider}, utils::find_position_in_strings};
+use crate::{cache::{get_timestamp, redis_get_exclusions}, options::{BraveSearchOptions, SearchProvider}, utils::{find_position_in_strings, uri_is_excluded}, exclusions::get_exclusion_pattern_strings, string_patterns::PatternMatch};
 
 pub fn extract_string(value: &Value, key: &str) -> Option<String> {
   if let Some(inner) = value.get(key) {
@@ -238,6 +238,12 @@ impl  ResultSet {
       }
     }
     self.results.sort_by(|a,b| a.weight.cmp(&b.weight));
+    self.count = self.results.len();
+  }
+
+  pub fn exclude_by_patterns(&mut self) {
+    let pattern_strings = get_exclusion_pattern_strings();
+    self.results = self.results.clone().into_iter().filter(|row| !uri_is_excluded(&pattern_strings, &row.uri)).collect();
     self.count = self.results.len();
   }
 
