@@ -16,3 +16,7 @@ pub fn build_query_string(options: &[(&str, String)]) -> String {
 pub fn build_query_option<'a>(key: &'a str, value: String) -> (&'a str, String) {
   (key, value)
 }
+
+pub fn find_position_in_strings(strings: &[String], sample: &str) -> Option<usize> {
+  strings.into_iter().position(|u| u.to_owned() == sample.to_string())
+}

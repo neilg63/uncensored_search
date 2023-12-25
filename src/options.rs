@@ -48,7 +48,7 @@ impl BraveSearchOptions {
 
   pub fn to_cache_key(&self) -> String {
     slugify(&[
-        "brave",
+        "cs",
         &self.q,
         self.safesearch.to_short().as_str(),
         self.cc.clone().unwrap_or("all".to_string()).as_str(),
@@ -74,11 +74,11 @@ impl BraveSearchOptions {
     }
   }
 
-  pub fn lang_code(&self) -> String {
+  pub fn lang_code(&self, default_code: &str) -> String {
     if let Some(lang) = self.language.clone() {
       lang
     } else {
-      "".to_owned()
+      default_code.to_owned()
     }
   }
 
@@ -106,19 +106,45 @@ impl BraveSearchOptions {
       tuples.push(("offset", self.offset.unwrap_or(0).to_string()));
     }
     if self.language.is_some() {
-      tuples.push(("language", self.lang_code()));
+      tuples.push(("language", self.lang_code("")));
+    }
+    tuples
+  }
+
+  pub fn to_mojeek_tuples(&self) -> Vec<(&str, String)> {
+    let api_key = dotenv::var("MOJEEK_SEARCH").unwrap_or("".to_owned());
+    let mut tuples: Vec<(&str, String)> = vec![
+      ("q", self.q.clone()),
+      ("api_key", api_key),
+      ("fmt", "json".to_owned()),
+      ("t", 20.to_string()),
+    ];
+    if self.cc.is_some() {
+      tuples.push(("rbb", self.cc_val().to_uppercase()));
+    }
+    /* if self.offset.is_some() {
+      tuples.push(("offset", self.offset.unwrap_or(0).to_string()));
+    }*/
+    let lang_code = self.lang_code("en").to_uppercase();
+    tuples.push(("lb", lang_code));
+    if self.language.is_none() {
+      tuples.push(("lbb", 50.to_string()));
     }
     tuples
   }
 
   pub fn to_suggest_tuples(&self) -> Vec<(&str, String)> {
-    let mut tuples: Vec<(&str, String)> = vec![("q", self.q.clone()), self.safesearch.to_option(), ("count", 20.to_string())];
+    let mut tuples: Vec<(&str, String)> = vec![
+      ("q", self.q.clone()),
+      self.safesearch.to_option(),
+      ("count", 20.to_string())
+    ];
     if self.cc.is_some() {
       tuples.push(("country", self.cc_val()));
       
     }
     if self.language.is_some() {
-      tuples.push(("lang", self.lang_code()));
+      tuples.push(("lang", self.lang_code("")));
     }
     tuples
   }
@@ -163,4 +189,14 @@ impl SafeMode {
     }.to_string()
   }
 
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+pub enum SearchProvider {
+  #[serde(rename = "textsurf")]
+  Text, // TextSurf
+  #[serde(rename = "brave")]
+  Brave,
+  #[serde(rename = "mojeek")]
+  Mojeek,
 }
