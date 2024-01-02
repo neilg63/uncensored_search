@@ -1234,6 +1234,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "string-patterns"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "39207a83ab61b410f49ee3dba4d2b82d98be32967346d105ecea455ae03c813c"
+dependencies = [
+ "regex",
+]
+
+[[package]]
 name = "strsim"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1529,6 +1538,7 @@ dependencies = [
  "serde_json",
  "serde_with",
  "slug",
+ "string-patterns",
  "tokio",
  "tower-http",
  "tracing",

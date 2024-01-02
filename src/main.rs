@@ -10,7 +10,6 @@ mod cache;
 mod utils;
 mod options;
 mod exclusions;
-mod string_patterns;
 
 use axum::Router;
 use std::net::SocketAddr;

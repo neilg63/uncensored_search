@@ -1,5 +1,5 @@
 use urlencoding::encode;
-use crate::string_patterns::*;
+use string_patterns::*;
 
 pub fn build_query_string(options: &[(&str, String)]) -> String {
   let mut params: Vec<String> = Vec::new();
